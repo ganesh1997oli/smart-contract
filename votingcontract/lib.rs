@@ -26,7 +26,7 @@ mod votingcontract {
         Nya,
     }
 
-    #[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
+    #[derive( Encode, Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum VotingcontractError {
         AlreadyVoted,
@@ -88,7 +88,7 @@ mod votingcontract {
 
         #[ink(constructor)]
         pub fn default() -> Self {
-            ink_lang::utils::initialize_contract(|contract: &mut Votingcontract|{});
+            ink_lang::utils::initialize_contract(|_contract: &mut Votingcontract|{});
             Self::new(Default::default())
         }
 
