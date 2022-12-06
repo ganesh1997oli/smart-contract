@@ -61,5 +61,10 @@ pub mod my_psp34_mintable {
             let account_id = self.env().account_id();
             self.mint(account_id, Id::U8(house_id)).unwrap();
         }
+
+        #[ink(message)]
+        pub fn get_house(&self, house_id: u8) -> Option<House> {
+            self.house.get(&house_id)
+        }
     }
 }
