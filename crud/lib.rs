@@ -45,7 +45,7 @@ mod crud {
     #[derive(SpreadAllocate)]
     pub struct Crud {
         users: Vec<User>,
-        next_id: i32
+        next_id: i32,
     }
 
     impl Crud {
@@ -86,9 +86,7 @@ mod crud {
         }
 
         #[ink(message)]
-         pub fn destroy(&mut self, id: i32) {
-            
-         }
+         pub fn destroy(&mut self, id: i32) { }
 
     }
     
