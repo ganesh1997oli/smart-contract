@@ -154,6 +154,23 @@ mod dao {
             proposal.votes += share;
         }
 
+        #[ink(message)]
+        pub fn execute_proposal(&mut self, proposal_id: i32) {
+            let caller = self.env().caller();
+            assert!(caller == self.admin, "only admin can execute proposal");
+
+            let now = self.env().block_timestamp();
+            let proposal = self.proposals.get(proposal_id).unwrap_or_default();
+            assert!(now >= proposal.end, "cannot execute proposal before end date");
+            assert!(proposal.execuated == false, "cannot execute proposal already execuated");
+            assert!((proposal.votes / self.total_shares) * 100 >= self.quorum, "cannot execute proposal with votes below quorum");
+
+            assert!(proposal.amount <= self.available_funds, "not enough available funds");
+            self.available_funds -= proposal.amount;
+            self.env().transfer(proposal.recipient, proposal.amount).unwrap_or_default();
+
+        }
+
         pub fn next_id(&mut self) -> ProposalId {
             let id = self.next_proposal_id;
             self.next_proposal_id += 1;
