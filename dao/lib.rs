@@ -4,7 +4,16 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod dao {
-    use ink_storage::{Mapping, traits::SpreadAllocate};
+
+    use ink_storage::{
+        Mapping, 
+        traits::{
+            SpreadAllocate,
+            SpreadLayout,
+            PackedLayout
+        }
+    };
+    use ink_prelude::vec::Vec;
 
     /// DAO contract:
     /// Collets investors money
@@ -12,6 +21,19 @@ mod dao {
     /// Allow investors to transfer shares
     /// allow investment proposals to be created and voted
     /// execute successful investment proposal (i.e send money)
+    
+    #[derive(SpreadLayout, PackedLayout, scale::Decode, scale::Encode, Default)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub struct Proposal {
+        name: Vec<u8>,
+        amount: Balance,
+        recipient: AccountId,
+        votes: u128,
+        end: u64,
+        execuated: bool,
+    }
+
+    pub type ProposalId = i32;
    
     #[ink(storage)]
     #[derive(SpreadAllocate)]
@@ -21,14 +43,25 @@ mod dao {
         total_shares: Balance,
         available_funds: Balance,
         contribution_end: u64,
+        proposals: Mapping<ProposalId, Proposal>,
+        votes: Mapping<AccountId, (ProposalId, bool)>,
+        next_proposal_id: i32,
+        vote_time: Timestamp,
+        quorum: u128,
+        admin: AccountId,
     }
 
     impl Dao {
         #[ink(constructor)]
-        pub fn new(contribution_time: u64) -> Self {
+        pub fn new(contribution_time: u64, vote_time: Timestamp, quorum: u128) -> Self {
             let now = Self::env().block_timestamp();
+            let caller = Self::env().caller();
+
             ink_lang::utils::initialize_contract(|_instance: &mut Dao|{
                 _instance.contribution_end = now + contribution_time;
+                _instance.vote_time = vote_time;
+                _instance.quorum = quorum;
+                _instance.admin = caller;
             })
         }
 
@@ -73,6 +106,58 @@ mod dao {
             self.shares.insert(caller, &(share - amount));
             self.shares.insert(to, &(share + amount));
             self.investors.insert(to, &true);
+        }
+
+        #[ink(message)]
+        pub fn create_proposal(&mut self, name: Vec<u8>, amount: Balance, recipient: AccountId) {
+            let caller = self.env().caller();
+
+            let investor = self.investors.get(caller).unwrap_or_default();
+            assert!(investor == true, "only investor can create proposal");
+
+            assert!(self.available_funds >= amount, "amount too big");
+
+            let proposal_id = self.next_id();
+            let now = self.env().block_timestamp();
+
+            let proposal = Proposal{
+                name,
+                amount,
+                recipient,
+                votes: 0,
+                end: now + self.vote_time,
+                execuated: false
+            };
+
+            self.proposals.insert(proposal_id, &proposal);
+
+            self.available_funds -= amount;
+
+        }
+
+        #[ink(message)]
+        pub fn vote(&mut self, proposal_id: i32) {
+            let mut proposal = self.proposals.get(proposal_id).unwrap_or_default();
+
+            let caller = self.env().caller();
+            let share = self.shares.get(caller).unwrap_or_default();
+
+            let now = self.env().block_timestamp();
+            let mut vote = self.votes.get(caller).unwrap_or_default();
+
+            let proposal_id = self.next_id();
+            assert!(vote == (proposal_id, false), "only investor can vote once for the proposal");
+            assert!(now <= proposal.end, "can only vote until proposal end date");
+
+            vote = (proposal_id, true);
+
+            proposal.votes += share;
+        }
+
+        pub fn next_id(&mut self) -> ProposalId {
+            let id = self.next_proposal_id;
+            self.next_proposal_id += 1;
+            id
         }
 
     }
