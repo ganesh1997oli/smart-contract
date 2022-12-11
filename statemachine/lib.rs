@@ -7,7 +7,8 @@ mod statemachine {
     use ink_storage::traits::{SpreadLayout, StorageLayout};
 
 
-    #[derive(SpreadLayout, StorageLayout, Debug)]
+    #[derive(SpreadLayout, StorageLayout, Debug, scale::Decode, scale::Encode, PartialEq, Eq)]
+    #[cfg_attr(feature="std", derive(scale_info::TypeInfo))]
     pub enum State {
         PENDING,
         ACTIVE,
@@ -19,17 +20,16 @@ mod statemachine {
        state: State,
        amount: u128,
        interest: u128,
-       end: i32,
+       end: u64,
        borrower: AccountId,
        lender: AccountId,
     }
 
     impl Statemachine {
         #[ink(constructor)]
-        pub fn new(amount: u128, interest: u128, end: i32, borrower: AccountId, lender: AccountId) -> Self {
-            let state = State::PENDING;
+        pub fn new(amount: u128, interest: u128, end: u64, borrower: AccountId, lender: AccountId) -> Self {
             Self { 
-                state,
+                state: State::PENDING,
                 amount,
                 interest,
                 end,
@@ -58,6 +58,28 @@ mod statemachine {
 
             self.env().transfer(self.lender, self.amount + self.interest).unwrap_or_default();
 
+        }
+
+        #[ink(message)]
+        pub fn transaction_to(&mut self, state: State, duration: u64) {
+           assert!(state != State::PENDING, "cannot go back to pending");
+           assert!(state != self.state, "cannot transaction to same state");
+
+           if state == State::ACTIVE {
+            assert!(self.state == State::PENDING,"cannot only go to active from pending");
+            self.state = State::ACTIVE;
+
+            let now = self.env().block_timestamp();
+            self.end = now + duration;
+           }
+
+           if state == State::CLOSED {
+            assert!(self.state == State::ACTIVE, "cannot only go to closed from active");
+
+            let now = self.env().block_timestamp();
+            assert!(now >= self.end, "loan hasn't matured yet");
+            self.state = State::CLOSED;
+           }
         }
         
     }
