@@ -57,9 +57,6 @@ mod tweetercontract {
         id: i32,
         #[ink(topic)]
         author: AccountId,
-        #[ink(topic)]
-        content: String,
-        created_at: u64
     }
 
     #[ink(event)]
@@ -70,10 +67,6 @@ mod tweetercontract {
         from: AccountId,
         #[ink(topic)]
         to: AccountId,
-        #[ink(topic)]
-        content: String,
-        created_at: u64
-
     }
 
     impl Tweetercontract {
@@ -145,8 +138,6 @@ mod tweetercontract {
                 id: message_id,
                 from,
                 to,
-                content,
-                created_at,
             })
 
         }
