@@ -4,11 +4,11 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod statemachine {
-    use ink_storage::traits::{SpreadLayout, StorageLayout};
+    use ink_storage::traits::{SpreadLayout};
 
 
-    #[derive(SpreadLayout, StorageLayout, Debug, scale::Decode, scale::Encode, PartialEq, Eq)]
-    #[cfg_attr(feature="std", derive(scale_info::TypeInfo))]
+    #[derive(SpreadLayout, Debug, scale::Decode, scale::Encode, PartialEq, Eq)]
+    #[cfg_attr(feature="std", derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout))]
     pub enum State {
         PENDING,
         ACTIVE,

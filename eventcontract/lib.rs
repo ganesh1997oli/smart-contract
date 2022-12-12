@@ -80,6 +80,21 @@ mod eventcontract {
             self.tickets.insert((caller, id), &(ticket + quantity));
         }
 
+        #[ink(message)]
+        pub fn transfer_ticket(&mut self, event_id: i32, quantity: u128, to: AccountId) {
+            let event = self.events.get(event_id).unwrap_or_default();
+            let now = self.env().block_timestamp();
+            let caller = self.env().caller();
+
+            assert!(event.date != 0, "this event doesn't exists");
+            assert!(now < event.date, "event must be active");
+
+            let ticket = self.tickets.get((caller, event_id)).unwrap_or_default();
+            assert!(ticket > quantity, "not enough ticket");
+
+            self.tickets.insert((to, event_id), &(ticket + quantity));
+        }
+
         pub fn next_id(&mut self) -> EventId {
             let id = self.event_next_id;
             self.event_next_id += 1;
