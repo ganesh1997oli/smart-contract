@@ -37,9 +37,16 @@ mod tokenlist {
         }
 
         #[ink(message)]
+        pub fn get_contract_balance(&self) -> Balance {
+            self.env().balance()
+        }
+
+        #[ink(message, payable)]
         pub fn add_name(&mut self, name: String) {
             self.name.insert(self.nid, &name);
             self.nid += 1;
+            let value = self.env().transferred_value();
+            self.env().transfer(self.env().caller(), value).unwrap();
         }
 
         #[ink(message)]

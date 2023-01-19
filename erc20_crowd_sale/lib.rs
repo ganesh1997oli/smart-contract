@@ -82,11 +82,16 @@ mod erc20_crowd_sale {
             let balance = self.env().balance();
             debug_print!("my value: {}\n",value);
             debug_print!("contract balance: {}\n",balance);
-            // assert!(value > 0, "Transferred value must not be 0");
+            assert!(value > 0, "Transferred value must not be 0");
             let tokens = value * self.buy_rate;
             self.env().transfer(caller, tokens).unwrap();
             self.env().transfer(self.owner, value).unwrap();
             self.env().emit_event(TokenBuy{caller, value, tokens});
+        }
+
+        #[ink(message)]
+        pub fn get_contract_balance(&self) -> u128 {
+            self.env().balance()
         }
 
         #[ink(message)]
